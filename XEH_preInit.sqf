@@ -173,7 +173,7 @@ private _modName = localize "STR_AAA_Name";
 	"SLIDER",
 	["$STR_AAA_THRESHOLD_VALUE", "$STR_AAA_THRESHOLD_VALUE_Desc"],
 	[_modName, "$STR_AAA_ArmorCoefs"],
-	[0, 50, 0, 2, false],
+	[0, 50, 5, 2, false],
 	1,
 	{},
 	false
