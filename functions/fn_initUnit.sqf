@@ -104,31 +104,75 @@ _unit setVariable [
 				if (AAA_VAR_EXPLOSIVE_MULT > 0 && {_projectile != "" && {getNumber (configFile >> "CfgAmmo" >> _projectile >> "indirectHit") > 0}}) then {
 					_armorCoef = _armorCoef * AAA_VAR_EXPLOSIVE_MULT;
 				};
-				// Multiply addedDamage by hitpoint's armor value divided by armor coefficient to correct ACE's armor
-				private _damageMultiplier = _hitpointArmor / _armorCoef;
-				_addedDamage = _addedDamage * _damageMultiplier;
-			} else {
-				// Do nothing
-			};
-			
-			if (AAA_VAR_DEBUG) then {
-				private _ogDamage = _damage - _prevDamage;
-				diag_log text "AAA DEBUG: NEW HIT PROCESSED! DETAILS BELOW:";
-				diag_log text format ["HIT UNIT: %1", _unit];
-				diag_log text format ["SHOOTER: %1", _source];
-				diag_log text format ["HITPOINT: %1", _hitPoint];
-				diag_log text format ["HITPOINT ARMOR: %1", _hitpointArmor];
-				diag_log text format ["ORIGINAL DAMAGE RECEIVED: %1", _ogDamage];
-				diag_log text format ["NEW DAMAGE RECEIVED: %1", _addedDamage];
-				if (_ogDamage != 0) then {
-					diag_log text format ["%1 DAMAGE CHANGE: %2%3", "%", ((_addedDamage - _ogDamage) * 100 / _ogDamage) toFixed 2, "%"];
-				} else {
-					diag_log text "% DAMAGE CHANGE: N/A";
-				};
-				diag_log text format ["TOTAL HITPOINT DAMAGE: %1", _prevDamage + _addedDamage];
-				diag_log text "";
-			};
-			
+
+		// Define the exponent for the exponential penetration
+                private _caliberExponent = 1.00; // Change this value to tweak the penetration (0 to whatever, default 1.00)
+                // Caliber Attenuation
+                private _caliberAttenuationFactor = _caliber ^ _caliberExponent;
+                _armorCoef = _armorCoef / (_caliberAttenuationFactor max 0.001);
+
+                // Calculate base damage multiplier
+                private _damageMultiplier = if (_armorCoef != 0) then { _hitpointArmor / _armorCoef } else { 1 };
+
+                // Define the exponent for the exponential armor buff (manually adjustable)
+                private _armorExponent = 1.00; // Change this value to tweak the buff strength (0 to whatever, default 1.00)
+                // Apply exponential adjustment to enhance the buff for higher armor values
+                if (_armorExponent > 0 && (_hitpointArmor - AAA_VAR_ARMOR_THRESHOLD_VALUE) > 0) then {
+                    _damageMultiplier = _damageMultiplier / ((_hitpointArmor / AAA_VAR_ARMOR_THRESHOLD_VALUE) ^ _armorExponent);
+                };
+
+                // Apply the adjusted damage multiplier
+                _addedDamage = _addedDamage * _damageMultiplier;
+            };
+
+            if (AAA_VAR_DEBUG) then {
+                private _ogDamage = _damage - _prevDamage;
+                private _debugMessage = format [
+                    "AAA DEBUG: NEW HIT PROCESSED!\n" +
+                    "Hit Unit: %1\n" +
+                    "Shooter: %2\n" +
+                    "Hitpoint: %3\n" +
+                    "Hitpoint Armor: %4\n" +
+                    "Armor Threshold: %5\n" +
+                    "Caliber: %6\n" +
+                    "Original Damage: %7\n" +
+                    "New Damage: %8\n" +
+                    "% Damage Change: %9\n" +
+                    "Total Hitpoint Damage: %10",
+                    _unit,
+                    _source,
+                    _hitPoint,
+                    _hitpointArmor,
+                    AAA_VAR_ARMOR_THRESHOLD_VALUE,
+                    if (_caliber != -1) then { str _caliber } else { "N/A" },
+                    _ogDamage,
+                    _addedDamage,
+                    if (_ogDamage != 0) then {format ["%1%2", ((_addedDamage - _ogDamage) * 100 / _ogDamage) toFixed 2, "%"]} else {"N/A"},
+                    _prevDamage + _addedDamage
+                ];
+
+                // Output to RPT file
+                diag_log text "AAA DEBUG: NEW HIT PROCESSED! DETAILS BELOW:";
+                diag_log text format ["HIT UNIT: %1", _unit];
+                diag_log text format ["SHOOTER: %1", _source];
+                diag_log text format ["HITPOINT: %1", _hitPoint];
+                diag_log text format ["HITPOINT ARMOR: %1", _hitpointArmor];
+                diag_log text format ["ARMOR THRESHOLD: %1", AAA_VAR_ARMOR_THRESHOLD_VALUE];
+                diag_log text format ["CALIBER: %1", if (_caliber != -1) then { str _caliber } else { "N/A" }];
+                diag_log text format ["ORIGINAL DAMAGE RECEIVED: %1", _ogDamage];
+                diag_log text format ["NEW DAMAGE RECEIVED: %1", _addedDamage];
+                if (_ogDamage != 0) then {
+                    diag_log text format ["%1 DAMAGE CHANGE: %2%3", "%", ((_addedDamage - _ogDamage) * 100 / _ogDamage) toFixed 2, "%"];
+                } else {
+                    diag_log text "% DAMAGE CHANGE: N/A";
+                };
+                diag_log text format ["TOTAL HITPOINT DAMAGE: %1", _prevDamage + _addedDamage];
+                diag_log text "";
+
+                // Output to screen (right side)
+                hintSilent _debugMessage;
+            };
+
 			// Replace original damage value with new damage value
 			_this set [2, _prevDamage + _addedDamage];
 		};
