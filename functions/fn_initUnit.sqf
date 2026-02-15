@@ -107,9 +107,7 @@ _unit setVariable [
 				// Multiply addedDamage by hitpoint's armor value divided by armor coefficient to correct ACE's armor
 				private _damageMultiplier = _hitpointArmor / _armorCoef;
 				_addedDamage = _addedDamage * _damageMultiplier;
-			} else {
-				// Do nothing
-			};
+			}
 			
 			if (AAA_VAR_DEBUG) then {
 				private _ogDamage = _damage - _prevDamage;
